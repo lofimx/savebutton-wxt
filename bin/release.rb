@@ -41,7 +41,7 @@ def highest_tag
     end
   end
 
-  abort "No semver tags found (expected tags like v0.1.0)" if semver_tags.empty?
+  return nil if semver_tags.empty?
 
   semver_tags.sort_by { |t| [t[:major], t[:minor], t[:patch]] }.last
 end
@@ -94,21 +94,35 @@ end
 # --- Main ---
 
 current = highest_tag
-new_ver = bump_patch(current)
-new_version = version_string(new_ver)
-new_tag = tag_string(new_ver)
 old_version = current_version_from_package_json
 
-puts "Current highest tag: #{current[:tag]}"
-puts "Current version in package.json: #{old_version}"
-puts
+if current
+  new_ver = bump_patch(current)
+  new_version = version_string(new_ver)
+  new_tag = tag_string(new_ver)
 
-print "New version [#{new_version}]: "
-override = $stdin.gets.chomp
-unless override.empty?
-  abort "Invalid version: #{override}" unless override.match?(/\A\d+\.\d+\.\d+\z/)
-  new_version = override
-  new_tag = "v#{new_version}"
+  puts "Current highest tag: #{current[:tag]}"
+  puts "Current version in package.json: #{old_version}"
+  puts
+
+  print "New version [#{new_version}]: "
+  override = $stdin.gets.chomp
+  unless override.empty?
+    abort "Invalid version: #{override}" unless override.match?(/\A\d+\.\d+\.\d+\z/)
+    new_version = override
+    new_tag = "v#{new_version}"
+  end
+else
+  puts "No existing tags found."
+  puts "Current version in package.json: #{old_version}"
+  puts
+
+  print "Enter initial tag (e.g. v1.0.0): "
+  input = $stdin.gets.chomp
+  abort "No tag provided." if input.empty?
+  abort "Invalid tag: #{input} (expected format: v1.0.0)" unless input.match?(/\Av\d+\.\d+\.\d+\z/)
+  new_version = input.delete_prefix("v")
+  new_tag = input
 end
 
 puts "Version: #{new_version}"
