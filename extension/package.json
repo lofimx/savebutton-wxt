@@ -1,0 +1,34 @@
+{
+  "name": "save-button",
+  "description": "Save bookmarks, quotes, and images with Save Button",
+  "private": true,
+  "version": "1.2.15",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "dev:chrome": "wxt -b chrome",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "build:chrome": "wxt build -b chrome",
+    "build:edge": "wxt build -b edge",
+    "build:safari": "wxt build -b safari",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "zip:chrome": "wxt zip -b chrome",
+    "zip:edge": "wxt zip -b edge",
+    "zip:safari": "wxt zip -b safari",
+    "postinstall": "wxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18",
+    "wxt": "^0.20.17"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

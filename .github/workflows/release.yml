@@ -1,0 +1,332 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-extension:
+    name: Build Extension (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [firefox, chrome, edge]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: extension
+        run: pnpm install
+
+      - name: Zip extension
+        working-directory: extension
+        run: pnpm wxt zip -b ${{ matrix.browser }}
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-${{ matrix.browser }}
+          path: extension/.output/*.zip
+          include-hidden-files: true
+
+  build-daemon:
+    name: Build Daemon (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: ".exe"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        working-directory: daemon
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename binary with target triple
+        shell: bash
+        run: mv daemon/target/${{ matrix.target }}/release/savebutton-daemon${{ matrix.ext }} daemon/target/${{ matrix.target }}/release/savebutton-daemon-${{ matrix.target }}${{ matrix.ext }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daemon-${{ matrix.target }}
+          path: daemon/target/${{ matrix.target }}/release/savebutton-daemon-${{ matrix.target }}${{ matrix.ext }}
+
+  package-linux:
+    name: Package Linux (${{ matrix.format }})
+    needs: build-daemon
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        format: [deb, rpm]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: daemon-x86_64-unknown-linux-gnu
+          path: binary
+
+      - name: Make binary executable
+        run: chmod +x binary/savebutton-daemon-x86_64-unknown-linux-gnu
+
+      - name: Install rpmbuild
+        if: matrix.format == 'rpm'
+        run: sudo apt-get install -y rpm
+
+      - name: Build package
+        run: daemon/packaging/build-${{ matrix.format }}.sh binary/savebutton-daemon-x86_64-unknown-linux-gnu
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.format }}
+          path: |
+            daemon/packaging/build-deb/*.deb
+            daemon/packaging/build-rpm/rpmbuild/RPMS/**/*.rpm
+
+  publish-chrome:
+    name: Publish to Chrome Web Store
+    needs: [build-extension, test-rust, test-extension]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Chrome extension
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-chrome
+          path: artifacts
+
+      - name: Find zip file
+        id: find-zip
+        run: echo "zip_path=$(ls artifacts/*-chrome.zip)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Chrome Web Store
+        continue-on-error: true
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: ${{ steps.find-zip.outputs.zip_path }}
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+
+  publish-edge:
+    name: Publish to Edge Add-ons
+    needs: [build-extension, test-rust, test-extension]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Edge extension
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-edge
+          path: artifacts
+
+      - name: Find zip file
+        id: find-zip
+        run: echo "zip_path=$(ls artifacts/*-edge.zip)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Edge Add-ons
+        uses: wdzeng/edge-addon@v2
+        with:
+          product-id: ${{ secrets.EDGE_PRODUCT_ID }}
+          zip-path: ${{ steps.find-zip.outputs.zip_path }}
+          client-id: ${{ secrets.EDGE_CLIENT_ID }}
+          api-key: ${{ secrets.EDGE_API_KEY }}
+          upload-only: true
+
+  publish-firefox:
+    name: Publish to Firefox AMO
+    needs: [build-extension, test-rust, test-extension]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: extension
+        run: pnpm install
+
+      - name: Download Firefox extension
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-firefox
+          path: artifacts
+
+      - name: Find zip files
+        id: find-zip
+        run: |
+          echo "zip_path=$(ls artifacts/*-firefox.zip)" >> "$GITHUB_OUTPUT"
+          echo "sources_path=$(ls artifacts/*-sources.zip)" >> "$GITHUB_OUTPUT"
+
+      - name: Sign and publish to AMO
+        working-directory: extension
+        run: |
+          pnpm wxt submit \
+            --firefox-zip "$GITHUB_WORKSPACE/${{ steps.find-zip.outputs.zip_path }}" \
+            --firefox-sources-zip "$GITHUB_WORKSPACE/${{ steps.find-zip.outputs.sources_path }}" \
+            --firefox-extension-id "org.savebutton@savebutton.org" \
+            --firefox-jwt-issuer "${{ secrets.AMO_JWT_ISSUER }}" \
+            --firefox-jwt-secret "${{ secrets.AMO_JWT_SECRET }}"
+
+  release:
+    name: Create Release
+    needs:
+      [
+        build-extension,
+        build-daemon,
+        package-linux,
+        build-safari,
+        publish-chrome,
+        publish-edge,
+        publish-firefox,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/daemon-*/*
+
+  build-safari:
+    name: Build Safari Extension
+    needs: [test-rust, test-extension]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: extension
+        run: pnpm install
+
+      - name: Build WXT for Safari
+        working-directory: extension
+        run: pnpm wxt build -b safari
+
+      - name: Install Apple certificates and provisioning profiles
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_DEV_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEV_CERTIFICATE_BASE64 }}
+          APPLE_DEV_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEV_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISION_PROFILE_APP_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_APP_BASE64 }}
+          APPLE_PROVISION_PROFILE_EXT_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_EXT_BASE64 }}
+          APP_STORE_API_KEY_BASE64: ${{ secrets.APP_STORE_API_KEY_BASE64 }}
+          APP_STORE_API_KEY: ${{ secrets.APP_STORE_API_KEY }}
+        run: .github/scripts/install-apple-certs.sh
+
+      - name: Archive universal binary (arm64 + x86_64)
+        env:
+          APP_STORE_API_KEY: ${{ secrets.APP_STORE_API_KEY }}
+          APP_STORE_API_ISSUER: ${{ secrets.APP_STORE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: .github/scripts/archive-safari.sh
+
+      - name: Export archive for App Store
+        env:
+          APP_STORE_API_KEY: ${{ secrets.APP_STORE_API_KEY }}
+          APP_STORE_API_ISSUER: ${{ secrets.APP_STORE_API_ISSUER }}
+        run: .github/scripts/export-safari.sh
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  test-rust:
+    name: Test Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        working-directory: daemon
+        run: cargo test
+
+  test-extension:
+    name: Test Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: extension/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: extension
+        run: pnpm install
+
+      - name: Build (Firefox)
+        working-directory: extension
+        run: pnpm wxt build -b firefox
+
+      - name: Build (Chrome)
+        working-directory: extension
+        run: pnpm wxt build -b chrome
