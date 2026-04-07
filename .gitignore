@@ -6,3 +6,9 @@ extension/.wxt
 web-ext-artifacts/
 tmp/
 
+flargon
+
+AGENTS.md
+CLAUDE.md
+/.claude
+
