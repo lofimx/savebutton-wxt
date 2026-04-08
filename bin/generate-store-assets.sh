@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-SVG_PATH="${1:-$PROJECT_ROOT/doc/design/yellow-floppy4.svg}"
+SVG_PATH="${1:-$PROJECT_ROOT/doc/design/yellow-floppy5-nomargin.svg}"
 OUTPUT_DIR="$PROJECT_ROOT/doc/stores"
 
 if [ ! -f "$SVG_PATH" ]; then
