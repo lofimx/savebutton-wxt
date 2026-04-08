@@ -137,6 +137,12 @@ All base64 values should be encoded without line breaks (`base64 -w 0` on Linux,
 | `APP_STORE_API_ISSUER` | App Store Connect API Issuer ID |
 | `APP_STORE_API_KEY_BASE64` | The `.p8` private key file from App Store Connect, base64-encoded |
 
+**Not used by this workflow** but previously set as a repo secret:
+
+| Secret | Description |
+|---|---|
+| `APPLE_CODE_SIGN_IDENTITY` | Signing identity string (e.g. `"Apple Distribution"`). Not needed -- Xcode resolves the identity automatically from the certificates imported into the keychain. |
+
 **How to get the certificates and profiles:**
 
 All of these steps must be done on a Mac.
