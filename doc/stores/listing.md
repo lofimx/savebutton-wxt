@@ -25,7 +25,7 @@ Features:
 - All data stored as plain files (bookmarks as .url, quotes as .md, metadata as .toml)
 - No third-party analytics or tracking
 
-An optional local daemon is available for users who want files mirrored to disk at ~/.kaya/. Visit https://savebutton.com for details.
+Desktop apps for Linux, macOS, and Windows are available for users who want files mirrored to disk at ~/.kaya/. Visit https://savebutton.com for details.
 
 ## Category
 
@@ -50,4 +50,4 @@ Save Button does not collect, transmit, or store any user data on third-party se
 - **storage**: Stores extension preferences (server URL, email, password) in browser local storage.
 - **notifications**: Displays error notifications to the user.
 - **alarms**: Schedules periodic sync with the Save Button server (every 1 minute).
-- **host_permissions (all URLs)**: Required to sync bookmarks, quotes, and images with the user's self-hosted Save Button server. The server URL is user-configurable, so the extension cannot know the domain in advance. Also used to fetch images from any website when the user saves an image via the context menu, and to communicate with an optional local daemon on localhost.
+- **host_permissions (all URLs)**: Required to sync bookmarks, quotes, and images with the user's self-hosted Save Button server. The server URL is user-configurable, so the extension cannot know the domain in advance. Also used to fetch images from any website when the user saves an image via the context menu, and to communicate with the optional Save Button desktop app on localhost.

@@ -4,10 +4,10 @@ import { writeFile, readAllBookmarkUrls } from "@/utils/opfs";
 import { loadConfig } from "@/utils/config";
 import { syncWithServer, testConnection } from "@/utils/sync";
 import {
-  pushFileToDaemon,
-  pushConfigToDaemon,
-  pushWordsFileToDaemon,
-} from "@/utils/daemon";
+  pushFileToDesktop,
+  pushConfigToDesktop,
+  pushWordsFileToDesktop,
+} from "@/utils/desktop";
 
 let knownBookmarkedUrls = new Set<string>();
 
@@ -58,13 +58,13 @@ async function triggerSync() {
     const config = await loadConfig();
     if (!config.configured || !config.email || !config.password) return;
 
-    // Push config to daemon on each sync cycle (in case daemon started after config was set)
-    pushConfigToDaemon(config);
+    // Push config to desktop app on each sync cycle (in case it started after config was set)
+    pushConfigToDesktop(config);
 
     const result = await syncWithServer(config);
-    // Push downloaded words files to daemon
+    // Push downloaded words files to desktop app
     for (const w of result.words.files) {
-      pushWordsFileToDaemon(w.anga, w.filename, w.content);
+      pushWordsFileToDesktop(w.anga, w.filename, w.content);
     }
 
     const totalDown =
@@ -85,7 +85,7 @@ async function saveAnga(
   content: string | ArrayBuffer,
 ): Promise<void> {
   await writeFile("anga", filename, content);
-  pushFileToDaemon("anga", filename, content);
+  pushFileToDesktop("anga", filename, content);
   await refreshBookmarkUrls();
   await updateIconForActiveTab();
   triggerSync();
@@ -93,7 +93,7 @@ async function saveAnga(
 
 async function saveMeta(filename: string, content: string): Promise<void> {
   await writeFile("meta", filename, content);
-  pushFileToDaemon("meta", filename, content);
+  pushFileToDesktop("meta", filename, content);
   triggerSync();
 }
 

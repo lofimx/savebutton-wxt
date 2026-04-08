@@ -1,5 +1,4 @@
 nativehost/target/
-daemon/target/
 extension/node_modules
 extension/.output
 extension/.wxt

@@ -1,6 +1,6 @@
 import { type Config } from "./config";
 
-const DAEMON_BASE = "http://localhost:21420";
+const DESKTOP_BASE = "http://localhost:21420";
 const TIMEOUT_MS = 2000;
 
 async function fetchWithTimeout(
@@ -16,16 +16,16 @@ async function fetchWithTimeout(
   }
 }
 
-export async function isDaemonRunning(): Promise<boolean> {
+export async function isDesktopRunning(): Promise<boolean> {
   try {
-    const response = await fetchWithTimeout(`${DAEMON_BASE}/health`);
+    const response = await fetchWithTimeout(`${DESKTOP_BASE}/health`);
     return response.ok;
   } catch {
     return false;
   }
 }
 
-export async function pushFileToDaemon(
+export async function pushFileToDesktop(
   collection: "anga" | "meta",
   filename: string,
   content: string | ArrayBuffer,
@@ -34,38 +34,38 @@ export async function pushFileToDaemon(
     const body =
       typeof content === "string" ? new TextEncoder().encode(content) : content;
     await fetchWithTimeout(
-      `${DAEMON_BASE}/${collection}/${encodeURIComponent(filename)}`,
+      `${DESKTOP_BASE}/${collection}/${encodeURIComponent(filename)}`,
       {
         method: "POST",
         body,
       },
     );
   } catch {
-    // Daemon is optional -- silently ignore failures
+    // Desktop app is optional -- silently ignore failures
   }
 }
 
-export async function pushWordsFileToDaemon(
+export async function pushWordsFileToDesktop(
   anga: string,
   filename: string,
   content: string,
 ): Promise<void> {
   try {
     await fetchWithTimeout(
-      `${DAEMON_BASE}/words/${encodeURIComponent(anga)}/${encodeURIComponent(filename)}`,
+      `${DESKTOP_BASE}/words/${encodeURIComponent(anga)}/${encodeURIComponent(filename)}`,
       {
         method: "POST",
         body: new TextEncoder().encode(content),
       },
     );
   } catch {
-    // Daemon is optional -- silently ignore failures
+    // Desktop app is optional -- silently ignore failures
   }
 }
 
-export async function pushConfigToDaemon(config: Config): Promise<void> {
+export async function pushConfigToDesktop(config: Config): Promise<void> {
   try {
-    await fetchWithTimeout(`${DAEMON_BASE}/config`, {
+    await fetchWithTimeout(`${DESKTOP_BASE}/config`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -75,6 +75,6 @@ export async function pushConfigToDaemon(config: Config): Promise<void> {
       }),
     });
   } catch {
-    // Daemon is optional -- silently ignore failures
+    // Desktop app is optional -- silently ignore failures
   }
 }

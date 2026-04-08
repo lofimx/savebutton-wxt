@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { pushConfigToDaemon } from "@/utils/daemon";
+import { pushConfigToDesktop } from "@/utils/desktop";
 import { loadConfig, saveConfig } from "@/utils/config";
 
 const serverInput = document.getElementById("server") as HTMLInputElement;
@@ -64,9 +64,9 @@ async function saveSettings() {
 
     await saveConfig(configUpdate);
 
-    // Push config to daemon if running (daemon is optional)
+    // Push config to desktop app if running (desktop app is optional)
     const config = await loadConfig();
-    pushConfigToDaemon(config);
+    pushConfigToDesktop(config);
 
     showStatus("Settings saved successfully", "success");
     passwordInput.value = PASSWORD_SENTINEL;

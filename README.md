@@ -16,7 +16,7 @@ Kaya browser extensions
 
 ## Architecture
 
-The browser extension is self-sufficient: it stores files locally using OPFS (Origin Private File System) and syncs them directly with the Save Button Server over HTTP. An optional local daemon can mirror files to `~/.kaya/` on disk.
+The browser extension is self-sufficient: it stores files locally using OPFS (Origin Private File System) and syncs them directly with the Save Button Server over HTTP. The Save Button desktop apps (GTK on Linux/macOS, WPF on Windows) listen on `localhost:21420` and mirror files to `~/.kaya/` on disk; the extension pushes files to them when available.
 
 Read the [Architecture Decision Records](doc/arch/) for full details.
 
@@ -49,16 +49,9 @@ To regenerate the Xcode project from scratch (e.g. after changing entrypoints):
 bin/build-safari.sh --regen
 ```
 
-### Optional Daemon
+### Desktop App Integration
 
-The daemon is not required for development or normal use. To run it:
-
-```bash
-cd daemon
-cargo build --release
-./target/release/savebutton-daemon
-# Listens on localhost:21420
-```
+The desktop apps (`savebutton-gtk` for Linux/macOS, `savebutton-wpf` for Windows) are not required for development or normal use. When running, they listen on `localhost:21420` and the browser extension pushes files to them so they can mirror anga to `~/.kaya/` on disk.
 
 ## Release
 
@@ -68,7 +61,7 @@ To release a new version:
 ruby bin/release.rb
 ```
 
-This bumps the patch version in `extension/package.json`, commits, tags (e.g. `v0.1.1`), and pushes. The tag triggers the GitHub Actions workflow which builds the extension for Firefox, Chrome, Edge, and Safari, runs tests, publishes to all four browser stores, and creates a GitHub Release with all artifacts.
+This bumps the patch version in `extension/package.json`, commits, tags (e.g. `v0.1.1`), and pushes. The tag triggers the GitHub Actions workflow which builds the extension for Firefox, Chrome, Edge, and Safari, runs tests, publishes to all four browser stores, and creates a GitHub Release with extension zips.
 
 For detailed store setup, secrets configuration, and first-time submission instructions, see [doc/stores/STORES.md](doc/stores/STORES.md).
 

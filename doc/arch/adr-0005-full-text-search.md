@@ -6,7 +6,7 @@ Because Kaya aims to be local-first, local search needs to be possible on all ed
 
 ## Decision
 
-Kaya WXT will keep a plaintext copy of bookmarks, PDFs, and other anga which are difficult to search directly. These plaintext copies will be stored in `/kaya/words` (OPFS for browser extension) or `~/.kaya/words/` (daemon/nativehost), according to the following layout:
+Kaya WXT will keep a plaintext copy of bookmarks, PDFs, and other anga which are difficult to search directly. These plaintext copies will be stored in `/kaya/words` (OPFS for browser extension) or `~/.kaya/words/` (desktop app), according to the following layout:
 
 * `/kaya/words/`                      = `~/.kaya/words/` = root
 * `/kaya/words/{bookmark}`            = `~/.kaya/words/{bookmark}` = bookmark root
@@ -25,7 +25,7 @@ When the user creates a new anga, whether directly or indirectly (via sync), Kay
 
 **API Mapping:**
 
-These use the home directory root (used by the daemon) as an example, but apply equally to `/kaya/words` for the browser extension and OPFS.
+These use the home directory root (used by the desktop app) as an example, but apply equally to `/kaya/words` for the browser extension and OPFS.
 
 * `~/.kaya/words/` <=> `/api/v1/:user_email/words`
 * `~/.kaya/words/{anga}` <=> `/api/v1/:user_email/words/:anga`

@@ -20,7 +20,7 @@ Save Button is published to four browser stores. This document covers the full r
    - Uploads the Edge zip to Edge Add-ons
    - Uploads the Firefox zip to AMO
    - Builds, archives, and uploads the Safari extension to App Store Connect
-   - Creates a GitHub Release with all artifacts (extension zips, daemon binaries, Linux packages)
+   - Creates a GitHub Release with all artifacts (extension zips)
 4. Each store performs its own review before publishing the update.
 
 ## Build Artifacts
