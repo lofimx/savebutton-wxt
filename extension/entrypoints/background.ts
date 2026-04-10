@@ -1,7 +1,7 @@
 import { browser } from "wxt/browser";
 import { generateTimestamp } from "@/utils/timestamp";
 import { writeFile, readAllBookmarkUrls } from "@/utils/opfs";
-import { loadConfig } from "@/utils/config";
+import { loadConfig, isConfigured } from "@/utils/config";
 import { syncWithServer, testConnection } from "@/utils/sync";
 import {
   pushFileToDesktop,
@@ -192,13 +192,13 @@ export default defineBackground({ persistent: false, main() {
 
   browser.contextMenus.create({
     id: "save-to-kaya-text",
-    title: "Add to Save Button",
+    title: "Add Text to Save Button",
     contexts: ["selection"],
   });
 
   browser.contextMenus.create({
     id: "save-to-kaya-image",
-    title: "Add to Save Button",
+    title: "Add Image to Save Button",
     contexts: ["image"],
   });
 
@@ -206,12 +206,33 @@ export default defineBackground({ persistent: false, main() {
     const timestamp = generateTimestamp();
 
     try {
+      let savedFilename: string | null = null;
+
       if (info.menuItemId === "save-to-kaya-text" && info.selectionText) {
-        const filename = `${timestamp}-quote.md`;
-        await saveAnga(filename, info.selectionText);
+        savedFilename = `${timestamp}-quote.md`;
+        await saveAnga(savedFilename, info.selectionText);
         flashGreenIcon();
       } else if (info.menuItemId === "save-to-kaya-image" && info.srcUrl) {
         await saveImage(info.srcUrl, timestamp);
+        // saveImage generates its own filename; we still want to open the popup
+        savedFilename = "image";
+      }
+
+      if (savedFilename && !(await isConfigured())) {
+        await browser.storage.local.set({
+          pendingContextSave: { timestamp, filename: savedFilename },
+        });
+        const popupUrl = browser.runtime.getURL("/popup.html");
+        try {
+          await browser.windows.create({
+            url: popupUrl,
+            type: "popup",
+            width: 320,
+            height: 220,
+          });
+        } catch (error) {
+          console.warn("Could not open popup after context menu save:", error);
+        }
       }
     } catch (error: any) {
       console.error("Failed to save:", error);

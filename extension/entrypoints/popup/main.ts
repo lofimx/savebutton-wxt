@@ -1,29 +1,13 @@
 import { browser } from "wxt/browser";
 import { generateTimestamp, urlToDomainSlug } from "@/utils/timestamp";
-import { saveConfig, isConfigured } from "@/utils/config";
-
-// Setup view elements
-const setupView = document.getElementById("setup-view")!;
-const setupServerInput = document.getElementById(
-  "setup-server",
-) as HTMLInputElement;
-const setupEmailInput = document.getElementById(
-  "setup-email",
-) as HTMLInputElement;
-const setupPasswordInput = document.getElementById(
-  "setup-password",
-) as HTMLInputElement;
-const setupSaveBtn = document.getElementById(
-  "setup-save-btn",
-) as HTMLButtonElement;
-const setupError = document.getElementById("setup-error")!;
+import { isConfigured } from "@/utils/config";
 
 // Bookmark view elements
-const bookmarkView = document.getElementById("bookmark-view")!;
 const statusIcon = document.getElementById("status-icon")!;
 const statusText = document.getElementById("status-text")!;
-const noteContainer = document.getElementById("note-container")!;
 const noteInput = document.getElementById("note-input") as HTMLInputElement;
+const loginContainer = document.getElementById("login-container")!;
+const loginBtn = document.getElementById("login-btn") as HTMLButtonElement;
 const errorContainer = document.getElementById("error-container")!;
 const errorText = document.getElementById("error-text")!;
 
@@ -32,15 +16,6 @@ let noteFocused = false;
 let bookmarkSaved = false;
 let currentTimestamp: string | null = null;
 let currentFilename: string | null = null;
-
-function showSetupError(message: string) {
-  setupError.textContent = message;
-  setupError.classList.remove("hidden");
-}
-
-function hideSetupError() {
-  setupError.classList.add("hidden");
-}
 
 function showSuccess(message: string) {
   statusIcon.className = "success";
@@ -68,63 +43,6 @@ function startAutoCloseTimer() {
       window.close();
     }
   }, 4000);
-}
-
-async function checkConfigured(): Promise<boolean> {
-  try {
-    return await isConfigured();
-  } catch (error) {
-    console.error("Failed to check config:", error);
-    return false;
-  }
-}
-
-async function saveSetup() {
-  hideSetupError();
-
-  const server = setupServerInput.value.trim() || "https://savebutton.com";
-  const email = setupEmailInput.value.trim();
-  const password = setupPasswordInput.value;
-
-  if (!email) {
-    showSetupError("Email is required");
-    return;
-  }
-
-  if (!password) {
-    showSetupError("Password is required");
-    return;
-  }
-
-  setupSaveBtn.textContent = "Saving...";
-  setupSaveBtn.disabled = true;
-
-  try {
-    // Test connection first
-    const testResponse: any = await browser.runtime.sendMessage({
-      action: "testConnection",
-      data: { server, email, password, configured: true },
-    });
-
-    if (testResponse && testResponse.error) {
-      showSetupError("Connection failed: " + testResponse.error);
-      setupSaveBtn.textContent = "Save & Continue";
-      setupSaveBtn.disabled = false;
-      return;
-    }
-
-    // Save config (password is encrypted at rest)
-    await saveConfig({ server, email, password, configured: true });
-
-    // Setup complete, now save the bookmark
-    setupView.classList.add("hidden");
-    bookmarkView.classList.remove("hidden");
-    saveBookmark();
-  } catch (error: any) {
-    showSetupError("Error: " + error.message);
-    setupSaveBtn.textContent = "Save & Continue";
-    setupSaveBtn.disabled = false;
-  }
 }
 
 async function saveBookmark() {
@@ -193,15 +111,13 @@ async function saveNote(noteText: string) {
   }
 }
 
-// Setup view event listeners
-setupSaveBtn.addEventListener("click", saveSetup);
-
-setupPasswordInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    saveSetup();
+async function openLogin() {
+  const noteText = noteInput.value.trim().replace(/[\n\r]/g, " ");
+  if (noteText && bookmarkSaved) {
+    await saveNote(noteText);
   }
-});
+  browser.runtime.openOptionsPage();
+}
 
 // Bookmark view event listeners
 noteInput.addEventListener("focus", () => {
@@ -231,16 +147,31 @@ noteInput.addEventListener("keydown", (e) => {
   }
 });
 
-// Initialize: check if configured
-async function init() {
-  const isConfigured = await checkConfigured();
+loginBtn.addEventListener("click", openLogin);
 
-  if (isConfigured) {
-    bookmarkView.classList.remove("hidden");
-    saveBookmark();
+// Initialize
+async function init() {
+  const configured = await isConfigured().catch(() => false);
+
+  if (!configured) {
+    loginContainer.classList.remove("hidden");
+  }
+
+  // Check for a pending context menu save
+  const stored = await browser.storage.local.get("pendingContextSave");
+  if (stored.pendingContextSave) {
+    const pending = stored.pendingContextSave as {
+      timestamp: string;
+      filename: string;
+    };
+    currentTimestamp = pending.timestamp;
+    currentFilename = pending.filename;
+    bookmarkSaved = true;
+    showSuccess("Saved!");
+    startAutoCloseTimer();
+    await browser.storage.local.remove("pendingContextSave");
   } else {
-    setupView.classList.remove("hidden");
-    setupServerInput.value = "https://savebutton.com";
+    saveBookmark();
   }
 }
 
