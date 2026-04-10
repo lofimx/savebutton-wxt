@@ -1,4 +1,5 @@
 import { defineConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite";
 
 // Static key ensures a stable extension ID (kpdhgjmpibjlajlhagbgmnpjifbdbjhd) across
 // dev sessions and unpacked installs. Chrome Web Store rejects manifests containing
@@ -7,6 +8,9 @@ const DEV_KEY =
   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuGJ/yHRh2QxnX1fHwuULS3Br2dQf0WagwLjQeZsNQJR82/iHdO81HLGXfkxe8w8P8iOGxIJZbJPTVyjzHzVqMIQ3QSWapIQZ537SYNv5V+CunYHQgoiSgGMzRqlkAOt/ZLBZaZZzEYpYwpiuAXG9kyIh+4pBThmgSNXjPGBfe4BiLLUyoF7pukacuj8R78/P9d4IRqgQTnPPF0QWXu7kWuJpRUOPj5tAycE4kscFYTrQEbFigdqGQnqwuMwAMvEehiyjRPRiUdauUItYxkk2arwVIRH4U3hDGKtR+FrqF/0mPGDarcTYwz4zr8u5UdfH6TpeuSY2LhDppSvmXPXdpQIDAQAB";
 
 export default defineConfig({
+  vite: () => ({
+    plugins: [tailwindcss()],
+  }),
   manifest: ({ mode }) => ({
     ...(mode === "development" ? { key: DEV_KEY } : {}),
     name: "Save Button",

@@ -16,9 +16,11 @@ passwordInput.addEventListener("input", () => {
   passwordChanged = true;
 });
 
+const STATUS_BASE_CLASSES = "mt-4 px-3 py-2.5 rounded-lg text-[13px]";
+
 function showStatus(message: string, type: string) {
   statusDiv.textContent = message;
-  statusDiv.className = type;
+  statusDiv.className = `${STATUS_BASE_CLASSES} ${type}`;
 }
 
 async function loadSettings() {

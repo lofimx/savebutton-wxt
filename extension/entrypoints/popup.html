@@ -6,25 +6,26 @@
     <meta name="manifest.default_title" content="Add to Save Button" />
     <link rel="stylesheet" href="./popup/style.css" />
   </head>
-  <body>
-    <div id="popup">
+  <body class="w-[280px] mx-auto">
+    <div id="popup" class="p-3">
       <div id="bookmark-view">
-        <div id="status">
+        <div id="status" class="flex items-center gap-2 mb-3">
           <span id="status-icon"></span>
-          <span id="status-text">Saving bookmark...</span>
+          <span id="status-text" class="font-medium text-neutral-900 dark:text-neutral-100">Saving bookmark...</span>
         </div>
-        <div id="note-container">
-          <label for="note-input">Add a Note</label>
+        <div id="note-container" class="flex flex-col gap-1.5">
+          <label for="note-input" class="text-xs font-medium text-neutral-500 dark:text-neutral-400">Add a Note</label>
           <input
             type="text"
             id="note-input"
+            class="px-2.5 py-2 border border-neutral-200 dark:border-neutral-700 rounded bg-white dark:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 outline-none transition-colors duration-200 focus:border-primary-400 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
             placeholder="Optional note..."
           />
         </div>
-        <div id="login-container" class="hidden">
-          <button id="login-btn" class="secondary">Login</button>
+        <div id="login-container" class="hidden mt-3">
+          <button id="login-btn" class="secondary w-full px-4 py-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[13px] font-medium text-neutral-600 dark:text-neutral-300 cursor-pointer transition-colors duration-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600">Login</button>
         </div>
-        <div id="error-container" class="hidden">
+        <div id="error-container" class="hidden mt-3 px-2.5 py-2 bg-error-light dark:bg-error-dark/20 rounded text-xs text-error-dark dark:text-error">
           <span id="error-text"></span>
         </div>
       </div>
