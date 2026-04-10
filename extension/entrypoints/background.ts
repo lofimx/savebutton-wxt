@@ -163,7 +163,28 @@ async function flashGreenIcon() {
       tabId,
     });
 
-    setTimeout(() => updateIconForActiveTab(), 2000);
+    const tabUrl = tabs.length > 0 ? tabs[0].url : undefined;
+    setTimeout(async () => {
+      try {
+        const isBookmarked = tabUrl ? knownBookmarkedUrls.has(tabUrl) : false;
+        const iconPath = isBookmarked
+          ? {
+              16: "/icon/icon-16.png",
+              32: "/icon/icon-32.png",
+              48: "/icon/icon-48.png",
+              96: "/icon/icon-96.png",
+            }
+          : {
+              16: "/icon/icon-grey-16.png",
+              32: "/icon/icon-grey-32.png",
+              48: "/icon/icon-grey-48.png",
+              96: "/icon/icon-grey-96.png",
+            };
+        await action.setIcon({ path: iconPath, tabId });
+      } catch (error) {
+        console.error("Failed to reset icon after flash:", error);
+      }
+    }, 2000);
   } catch (error) {
     console.error("Failed to flash green icon:", error);
   }
