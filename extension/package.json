@@ -20,7 +20,8 @@
     "zip:safari": "wxt zip -b safari",
     "postinstall": "wxt prepare",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf .output .wxt node_modules ../web-ext-artifacts"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",

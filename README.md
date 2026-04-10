@@ -34,6 +34,53 @@ pnpm dev:chrome    # Chrome with hot reload
 pnpm dev:firefox   # Firefox with hot reload
 ```
 
+### Testing
+
+```bash
+cd extension
+pnpm test          # run tests once
+pnpm test:watch    # run tests in watch mode
+```
+
+### Building
+
+```bash
+cd extension
+pnpm build:chrome   # build for Chrome
+pnpm build:firefox  # build for Firefox
+pnpm build:edge     # build for Edge
+pnpm build:safari   # build for Safari
+```
+
+Build output goes to `extension/.output/<browser>-<manifest>/`.
+
+To create distribution zips:
+
+```bash
+pnpm zip:chrome
+pnpm zip:firefox
+pnpm zip:edge
+pnpm zip:safari
+```
+
+### Cleaning
+
+```bash
+cd extension
+pnpm clean
+pnpm install       # reinstall dependencies after clean
+```
+
+This removes all build artifacts (`.output/`), WXT caches (`.wxt/`), installed dependencies (`node_modules/`), and browser dev profiles (`web-ext-artifacts/`).
+
+### Generating Icons
+
+```bash
+bin/generate-icons.sh          # extension icons (PNG + SVG) from source SVG
+bin/generate-safari-icons.sh   # Safari-specific icons (AppIcon, LargeIcon)
+bin/generate-store-assets.sh   # store listing assets (128px, 300px, promo tile)
+```
+
 ### Safari
 
 Safari requires an Xcode project wrapping the web extension. The Xcode project lives in `safari/` and references the WXT build output at `extension/.output/safari-mv2/`.
