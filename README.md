@@ -110,6 +110,8 @@ ruby bin/release.rb
 
 This bumps the patch version in `extension/package.json`, commits, tags (e.g. `v0.1.1`), and pushes. The tag triggers the GitHub Actions workflow which builds the extension for Firefox, Chrome, Edge, and Safari, runs tests, publishes to all four browser stores, and creates a GitHub Release with extension zips.
 
+**Note:** CI only uploads extension zips -- it does not update store listing metadata (icons, screenshots, descriptions). Update those manually in each store's dashboard using the assets in `doc/stores/` (e.g. `store-icon-128.png` for Chrome/Firefox, `store-icon-300.png` for Edge). Edge and Safari also require manual steps after CI completes. See [doc/stores/STORES.md](doc/stores/STORES.md) for details.
+
 For detailed store setup, secrets configuration, and first-time submission instructions, see [doc/stores/STORES.md](doc/stores/STORES.md).
 
 ## Safari: Manual Tasks

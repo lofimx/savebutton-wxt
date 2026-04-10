@@ -43,6 +43,7 @@ Assets are checked into `doc/stores/`:
 | `store-icon-128.png` | 128x128 | Chrome Web Store, Firefox AMO |
 | `store-icon-300.png` | 300x300 | Edge Add-ons |
 | `promo-small-440x280.png` | 440x280 | Chrome Web Store (optional promo tile) |
+| `promo-large-1400x560.png` | 1400x560 | Chrome Web Store, Edge Add-ons (optional promo tile) |
 | `screenshot-*.png` | 1280x800 | All stores |
 | `listing.md` | -- | Listing text for all stores |
 

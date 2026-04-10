@@ -173,6 +173,25 @@ puts "Pushed #{new_tag} to origin."
 puts
 puts "Release #{new_tag} complete."
 puts
-puts "NOTE: Safari requires a manual App Store submission."
-puts "      Create a new App Store version on App Store Connect."
-puts "      See doc/stores/STORES.md (\"Updating Store Submissions\") for steps."
+puts "POST-RELEASE MANUAL STEPS"
+puts "========================="
+puts
+puts "After the GitHub Actions workflow completes:"
+puts
+puts "  Edge:   Go to Partner Center and click 'Publish' on the uploaded draft."
+puts "          CI uploads the zip but does not publish (upload-only mode)."
+puts
+puts "  Safari: Create a new App Store version in App Store Connect, select the"
+puts "          CI-uploaded build, and submit for review."
+puts
+puts "  Chrome: Usually automatic. If a previous version is still in review,"
+puts "          the new upload becomes a draft -- submit it manually from the"
+puts "          Chrome Developer Dashboard once the prior review completes."
+puts
+puts "  Firefox: Fully automatic. No action needed."
+puts
+puts "  Store listings (icons, screenshots, descriptions) are NOT updated by CI."
+puts "  Update them manually in each store's dashboard."
+puts "  Icons: doc/stores/store-icon-128.png (Chrome, Firefox)"
+puts "         doc/stores/store-icon-300.png (Edge)"
+puts "  See doc/stores/STORES.md for full details."

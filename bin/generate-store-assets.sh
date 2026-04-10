@@ -25,20 +25,32 @@ rsvg-convert -w 128 -h 128 "$SVG_PATH" -o "$OUTPUT_DIR/store-icon-128.png"
 echo "  store-icon-300.png  (Edge Add-ons)"
 rsvg-convert -w 300 -h 300 "$SVG_PATH" -o "$OUTPUT_DIR/store-icon-300.png"
 
-# Chrome small promo tile: 440x280
-# Render from the social preview SVG, scaled to fit 440x280
-echo "  promo-small-440x280.png  (Chrome Web Store, optional)"
+# Promo tiles from social preview SVG
+# The SVG is 1200x630 (~1.9:1). The target tiles have different aspect ratios.
+# Strategy: render the SVG to cover the target dimensions (scale up so the shorter
+# axis fills the target), then center-crop to exact size.
+# Background color (#fff3c4) matches the SVG gradient midpoint for any padding.
+PROMO_BG="#fff3c4"
+
 if [ -f "$SOCIAL_SVG" ]; then
-  rsvg-convert -w 440 -h 280 --keep-aspect-ratio "$SOCIAL_SVG" -o "$OUTPUT_DIR/promo-small-440x280.png"
+  # Chrome small promo tile: 440x280 (~1.57:1, taller than SVG aspect)
+  echo "  promo-small-440x280.png  (Chrome Web Store, optional)"
+  # Need height=280; at SVG aspect 1200:630, that gives width=533. Crop width to 440.
+  rsvg-convert -h 280 "$SOCIAL_SVG" -o "$OUTPUT_DIR/_tmp_promo_small.png"
+  convert "$OUTPUT_DIR/_tmp_promo_small.png" -gravity center -crop 440x280+0+0 +repage \
+    "$OUTPUT_DIR/promo-small-440x280.png"
+  rm "$OUTPUT_DIR/_tmp_promo_small.png"
+
+  # Chrome/Edge large promo tile: 1400x560 (2.5:1, wider than SVG aspect)
+  echo "  promo-large-1400x560.png (Chrome Web Store, Edge Add-ons, optional)"
+  # Need width=1400; at SVG aspect 1200:630, that gives height=735. Crop height to 560.
+  rsvg-convert -w 1400 "$SOCIAL_SVG" -o "$OUTPUT_DIR/_tmp_promo_large.png"
+  convert "$OUTPUT_DIR/_tmp_promo_large.png" -gravity center -crop 1400x560+0+0 +repage \
+    "$OUTPUT_DIR/promo-large-1400x560.png"
+  rm "$OUTPUT_DIR/_tmp_promo_large.png"
 else
   echo "  WARNING: social-preview.svg not found at $SOCIAL_SVG"
-  echo "           Falling back to icon-based promo tile"
-  ICON_SIZE=220
-  rsvg-convert -w "$ICON_SIZE" -h "$ICON_SIZE" "$SVG_PATH" -o "$OUTPUT_DIR/_tmp_promo_icon.png"
-  convert -size 440x280 xc:white \
-    "$OUTPUT_DIR/_tmp_promo_icon.png" -gravity center -composite \
-    "$OUTPUT_DIR/promo-small-440x280.png"
-  rm "$OUTPUT_DIR/_tmp_promo_icon.png"
+  echo "           Skipping promo tile generation"
 fi
 
 echo ""
