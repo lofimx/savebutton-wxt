@@ -3,11 +3,14 @@ extension/node_modules
 extension/.output
 extension/.wxt
 web-ext-artifacts/
-tmp/
 
-flargon
+# flargon
+/flargon
+/tmp
 
+# slop PRs
 AGENTS.md
 CLAUDE.md
 /.claude
+
 
