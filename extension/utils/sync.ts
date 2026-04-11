@@ -4,13 +4,17 @@ import {
   listFiles,
   readFile,
   writeFile,
-  listWordsAngaDirs,
   listWordsFiles,
   writeWordsFile,
 } from "./opfs";
+import { getAuthHeader, tryRefreshToken } from "./auth";
 
-function authHeader(config: Config): string {
-  return "Basic " + btoa(`${config.email}:${config.password}`);
+function normalizeServerUrl(url: string): string {
+  let normalized = url.replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = `https://${normalized}`;
+  }
+  return normalized;
 }
 
 function apiUrl(
@@ -18,7 +22,7 @@ function apiUrl(
   collection: Collection,
   filename?: string,
 ): string {
-  const base = `${config.server.replace(/\/+$/, "")}/api/v1/${encodeURIComponent(config.email)}/${collection}`;
+  const base = `${normalizeServerUrl(config.server)}/api/v1/${encodeURIComponent(config.email)}/${collection}`;
   return filename ? `${base}/${encodeURIComponent(filename)}` : base;
 }
 
@@ -43,13 +47,55 @@ function mimeTypeFor(filename: string): string {
   return types[ext] || "application/octet-stream";
 }
 
+// ---------------------------------------------------------------------------
+// Authenticated fetch with 401 retry via token refresh
+// ---------------------------------------------------------------------------
+
+async function authenticatedFetch(
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  // Access token lives in memory and is lost on service worker restart.
+  // If missing, try refreshing from the stored refresh token first.
+  let authHeaderValue = getAuthHeader();
+  if (!authHeaderValue) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      authHeaderValue = getAuthHeader();
+    }
+    if (!authHeaderValue) {
+      throw new Error("Not authenticated");
+    }
+  }
+
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", authHeaderValue);
+
+  const response = await fetch(url, { ...init, headers });
+
+  if (response.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      const newAuthHeader = getAuthHeader();
+      if (newAuthHeader) {
+        headers.set("Authorization", newAuthHeader);
+        return fetch(url, { ...init, headers });
+      }
+    }
+  }
+
+  return response;
+}
+
+// ---------------------------------------------------------------------------
+// File listing, download, upload
+// ---------------------------------------------------------------------------
+
 async function fetchServerFileList(
   config: Config,
   collection: Collection,
 ): Promise<Set<string>> {
-  const response = await fetch(apiUrl(config, collection), {
-    headers: { Authorization: authHeader(config) },
-  });
+  const response = await authenticatedFetch(apiUrl(config, collection));
 
   if (!response.ok) {
     throw new Error(
@@ -71,9 +117,9 @@ async function downloadFile(
   collection: Collection,
   filename: string,
 ): Promise<void> {
-  const response = await fetch(apiUrl(config, collection, filename), {
-    headers: { Authorization: authHeader(config) },
-  });
+  const response = await authenticatedFetch(
+    apiUrl(config, collection, filename),
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -96,11 +142,13 @@ async function uploadFile(
   const formData = new FormData();
   formData.append("file", blob, filename);
 
-  const response = await fetch(apiUrl(config, collection, filename), {
-    method: "POST",
-    headers: { Authorization: authHeader(config) },
-    body: formData,
-  });
+  const response = await authenticatedFetch(
+    apiUrl(config, collection, filename),
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
 
   // 409 Conflict = file already exists, that's fine
   if (!response.ok && response.status !== 409) {
@@ -143,7 +191,7 @@ async function syncCollection(
 // ---------------------------------------------------------------------------
 
 function wordsApiUrl(config: Config, ...parts: string[]): string {
-  const base = `${config.server.replace(/\/+$/, "")}/api/v1/${encodeURIComponent(config.email)}/words`;
+  const base = `${normalizeServerUrl(config.server)}/api/v1/${encodeURIComponent(config.email)}/words`;
   if (parts.length === 0) return base;
   return base + "/" + parts.map(encodeURIComponent).join("/");
 }
@@ -152,9 +200,9 @@ async function fetchWordsListing(
   config: Config,
   ...pathParts: string[]
 ): Promise<Set<string>> {
-  const response = await fetch(wordsApiUrl(config, ...pathParts), {
-    headers: { Authorization: authHeader(config) },
-  });
+  const response = await authenticatedFetch(
+    wordsApiUrl(config, ...pathParts),
+  );
 
   if (!response.ok) {
     throw new Error(`Server returned ${response.status} for words listing`);
@@ -195,9 +243,9 @@ export async function syncWords(config: Config): Promise<WordsSyncResult> {
       if (localFiles.has(filename)) continue;
 
       // Download missing file
-      const response = await fetch(wordsApiUrl(config, anga, filename), {
-        headers: { Authorization: authHeader(config) },
-      });
+      const response = await authenticatedFetch(
+        wordsApiUrl(config, anga, filename),
+      );
 
       if (response.ok) {
         const content = await response.text();
@@ -228,12 +276,10 @@ export async function syncWithServer(config: Config): Promise<SyncResult> {
 }
 
 export async function testConnection(config: Config): Promise<void> {
-  const response = await fetch(apiUrl(config, "anga"), {
-    headers: { Authorization: authHeader(config) },
-  });
+  const response = await authenticatedFetch(apiUrl(config, "anga"));
 
   if (response.status === 401) {
-    throw new Error("Authentication failed - check your email and password");
+    throw new Error("Authentication failed");
   }
 
   if (!response.ok) {

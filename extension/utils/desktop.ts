@@ -71,7 +71,6 @@ export async function pushConfigToDesktop(config: Config): Promise<void> {
       body: JSON.stringify({
         server: config.server,
         email: config.email,
-        password: config.password,
       }),
     });
   } catch {

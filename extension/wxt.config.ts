@@ -10,6 +10,7 @@ const DEV_KEY =
 export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
+    server: { allowedHosts: true },
   }),
   manifest: ({ mode }) => ({
     ...(mode === "development" ? { key: DEV_KEY } : {}),
@@ -23,6 +24,7 @@ export default defineConfig({
       "contextMenus",
       "storage",
       "alarms",
+      "identity",
     ],
     host_permissions: ["<all_urls>"],
     browser_specific_settings: {

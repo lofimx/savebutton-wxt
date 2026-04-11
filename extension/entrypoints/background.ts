@@ -1,13 +1,14 @@
 import { browser } from "wxt/browser";
 import { generateTimestamp } from "@/utils/timestamp";
 import { writeFile, readAllBookmarkUrls } from "@/utils/opfs";
-import { loadConfig, isConfigured } from "@/utils/config";
+import { isConfigured } from "@/utils/config";
 import { syncWithServer, testConnection } from "@/utils/sync";
 import {
   pushFileToDesktop,
   pushConfigToDesktop,
   pushWordsFileToDesktop,
 } from "@/utils/desktop";
+import { loadAuthEmail, loadAuthServer } from "@/utils/auth";
 
 let knownBookmarkedUrls = new Set<string>();
 
@@ -55,8 +56,13 @@ async function updateIconForActiveTab() {
 
 async function triggerSync() {
   try {
-    const config = await loadConfig();
-    if (!config.configured || !config.email || !config.password) return;
+    if (!(await isConfigured())) return;
+
+    const email = await loadAuthEmail();
+    const server = await loadAuthServer();
+    if (!email || !server) return;
+
+    const config = { server, email };
 
     // Push config to desktop app on each sync cycle (in case it started after config was set)
     pushConfigToDesktop(config);

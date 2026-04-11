@@ -1,61 +1,33 @@
 import { browser } from "wxt/browser";
-import { encryptPassword, decryptPassword } from "./crypto";
+import { hasTokenAuth } from "./auth";
 
 export interface Config {
   server: string;
   email: string;
-  password: string; // 2026-02-26 TODO: remove legacy password-handling migration block
-  configured: boolean;
 }
 
 const DEFAULT_SERVER = "https://savebutton.com";
 
 export async function loadConfig(): Promise<Config> {
-  const result = await browser.storage.local.get([
-    "server",
-    "email",
-    "configured",
-    "password", // 2026-02-26 TODO: remove legacy password-handling migration block
-  ]);
-
-  let password = "";
-
-  // Try decrypting the encrypted password first
-  const decrypted = await decryptPassword();
-  if (decrypted !== null) {
-    password = decrypted;
-  } else if (result.password) {
-    // 2026-02-26 TODO: remove legacy password-handling migration block
-    password = result.password as string;
-    await encryptPassword(password);
-  }
+  const result = await browser.storage.local.get(["server", "email"]);
 
   return {
     server: (result.server as string) || DEFAULT_SERVER,
     email: (result.email as string) || "",
-    password,
-    configured: result.configured === true,
   };
 }
 
 export async function saveConfig(config: Partial<Config>): Promise<void> {
-  const toStore: Record<string, string | boolean> = {};
+  const toStore: Record<string, string> = {};
 
   if (config.server !== undefined) toStore.server = config.server;
   if (config.email !== undefined) toStore.email = config.email;
-  if (config.configured !== undefined) toStore.configured = config.configured;
 
   if (Object.keys(toStore).length > 0) {
     await browser.storage.local.set(toStore);
   }
-
-  // Encrypt and store password separately
-  if (config.password !== undefined) {
-    await encryptPassword(config.password);
-  }
 }
 
 export async function isConfigured(): Promise<boolean> {
-  const config = await loadConfig();
-  return config.configured && !!config.email && !!config.password;
+  return hasTokenAuth();
 }
