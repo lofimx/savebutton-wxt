@@ -1,5 +1,15 @@
-import { describe, it, expect } from "vitest";
-import { generateCodeVerifier, generateCodeChallenge } from "../auth";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("wxt/browser", () => ({
+  browser: {} as Record<string, unknown>,
+}));
+
+import { browser } from "wxt/browser";
+import {
+  generateCodeVerifier,
+  generateCodeChallenge,
+  hasNativeWebAuthFlow,
+} from "../auth";
 
 describe("generateCodeVerifier", () => {
   it("returns a base64url-encoded string", () => {
@@ -44,5 +54,40 @@ describe("generateCodeChallenge", () => {
     const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
     const challenge = await generateCodeChallenge(verifier);
     expect(challenge).toBe("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+  });
+});
+
+describe("hasNativeWebAuthFlow", () => {
+  const anyBrowser = browser as any;
+
+  afterEach(() => {
+    delete anyBrowser.identity;
+  });
+
+  it("returns false when browser.identity is missing", () => {
+    delete anyBrowser.identity;
+    expect(hasNativeWebAuthFlow()).toBe(false);
+  });
+
+  it("returns false when launchWebAuthFlow is missing", () => {
+    anyBrowser.identity = {
+      getRedirectURL: () => "https://example.chromiumapp.org/",
+    };
+    expect(hasNativeWebAuthFlow()).toBe(false);
+  });
+
+  it("returns false when getRedirectURL is missing", () => {
+    anyBrowser.identity = {
+      launchWebAuthFlow: vi.fn(),
+    };
+    expect(hasNativeWebAuthFlow()).toBe(false);
+  });
+
+  it("returns true when both functions are present", () => {
+    anyBrowser.identity = {
+      getRedirectURL: () => "https://example.chromiumapp.org/",
+      launchWebAuthFlow: vi.fn(),
+    };
+    expect(hasNativeWebAuthFlow()).toBe(true);
   });
 });

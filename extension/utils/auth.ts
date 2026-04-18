@@ -317,17 +317,26 @@ export async function tryRefreshToken(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Browser login flow (PKCE via browser.identity)
+// Browser login flow (PKCE via browser.identity, with Safari tab fallback)
 // ---------------------------------------------------------------------------
 
-async function launchWebAuthFlow(
+// Safari's WebExtensions shim does not implement browser.identity even when
+// the "identity" permission is declared. Feature-detect and fall back to a
+// tab-based flow that watches for navigation to a server-hosted callback URL.
+export function hasNativeWebAuthFlow(): boolean {
+  const identity = (browser as any).identity;
+  return (
+    typeof identity?.launchWebAuthFlow === "function" &&
+    typeof identity?.getRedirectURL === "function"
+  );
+}
+
+function buildAuthorizeUrl(
   server: string,
   authorizePath: string,
-): Promise<{ tokens: TokenResponse; email: string }> {
-  const codeVerifier = generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-  const redirectUri = browser.identity.getRedirectURL();
-
+  codeChallenge: string,
+  redirectUri: string,
+): URL {
   const authorizeUrl = new URL(
     `${normalizeServerUrl(server)}${authorizePath}`,
   );
@@ -336,6 +345,18 @@ async function launchWebAuthFlow(
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("device_name", getDeviceName());
   authorizeUrl.searchParams.set("device_type", "browser_extension");
+  return authorizeUrl;
+}
+
+async function launchWebAuthFlowNative(
+  server: string,
+  authorizePath: string,
+): Promise<{ tokens: TokenResponse; email: string }> {
+  console.info("Auth: using native identity flow");
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  const redirectUri = browser.identity.getRedirectURL();
+  const authorizeUrl = buildAuthorizeUrl(server, authorizePath, codeChallenge, redirectUri);
 
   const responseUrl = await browser.identity.launchWebAuthFlow({
     url: authorizeUrl.toString(),
@@ -349,6 +370,70 @@ async function launchWebAuthFlow(
   }
 
   return exchangeCodeForTokens(server, code, codeVerifier);
+}
+
+async function launchWebAuthFlowTabFallback(
+  server: string,
+  authorizePath: string,
+): Promise<{ tokens: TokenResponse; email: string }> {
+  console.info("Auth: using tab fallback flow (Safari)");
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  const redirectUri = `${normalizeServerUrl(server)}/oauth/extension-callback`;
+  const authorizeUrl = buildAuthorizeUrl(server, authorizePath, codeChallenge, redirectUri);
+
+  const tab = await browser.tabs.create({ url: authorizeUrl.toString() });
+  const tabId = tab.id;
+  if (tabId === undefined) {
+    throw new Error("Failed to open authorization tab");
+  }
+
+  const code = await new Promise<string>((resolve, reject) => {
+    const cleanup = () => {
+      browser.tabs.onUpdated.removeListener(onUpdated);
+      browser.tabs.onRemoved.removeListener(onRemoved);
+    };
+
+    const onUpdated = (updatedTabId: number, changeInfo: { url?: string }) => {
+      if (updatedTabId !== tabId) return;
+      const url = changeInfo.url;
+      if (!url || !url.startsWith(redirectUri)) return;
+
+      cleanup();
+      browser.tabs.remove(tabId).catch((error) => {
+        console.warn("Auth: failed to close auth tab:", error);
+      });
+
+      const parsed = new URL(url);
+      const receivedCode = parsed.searchParams.get("code");
+      const error = parsed.searchParams.get("error");
+      if (receivedCode) {
+        resolve(receivedCode);
+      } else {
+        reject(new Error(error || "No authorization code received"));
+      }
+    };
+
+    const onRemoved = (removedTabId: number) => {
+      if (removedTabId !== tabId) return;
+      cleanup();
+      reject(new Error("Authorization cancelled"));
+    };
+
+    browser.tabs.onUpdated.addListener(onUpdated);
+    browser.tabs.onRemoved.addListener(onRemoved);
+  });
+
+  return exchangeCodeForTokens(server, code, codeVerifier);
+}
+
+async function launchWebAuthFlow(
+  server: string,
+  authorizePath: string,
+): Promise<{ tokens: TokenResponse; email: string }> {
+  return hasNativeWebAuthFlow()
+    ? launchWebAuthFlowNative(server, authorizePath)
+    : launchWebAuthFlowTabFallback(server, authorizePath);
 }
 
 export async function launchBrowserLogin(

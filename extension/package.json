@@ -8,6 +8,7 @@
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
     "dev:chrome": "wxt -b chrome",
+    "dev:safari": "wxt build -b safari -m development && open '../safari/Save Button/Save Button.xcodeproj' && echo '' && echo 'Next steps in Xcode:' && echo '  1. Select the Save Button (macOS) scheme, then press Cmd+R to build and run the host app.' && echo '  2. In Safari: Settings -> Extensions, enable Save Button.' && echo '  3. For unsigned debug builds: Safari -> Develop -> Allow Unsigned Extensions (re-enable each Safari launch).' && echo ''",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "build:chrome": "wxt build -b chrome",
