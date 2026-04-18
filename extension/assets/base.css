@@ -65,6 +65,13 @@
    Base Styles
    ============================================ */
 @layer base {
+  /* Signal to Safari/WebKit that the page is dark-mode-aware.
+     Without this, Safari extension popup/options contexts render as
+     light-only and do not reliably match prefers-color-scheme: dark. */
+  html {
+    color-scheme: light dark;
+  }
+
   body {
     @apply font-sans text-sm antialiased;
     @apply text-neutral-900 bg-white;

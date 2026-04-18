@@ -40,6 +40,13 @@ The extension follows the operating system's theme preference automatically usin
 
 This differs slightly from `savebutton-web`, which uses a `data-theme` attribute with a user toggle (light/dark/auto). The visual result is the same: in both cases, dark mode uses the neutral-950 background and neutral-100 text from the shared token palette.
 
+**Safari requires an explicit `color-scheme` opt-in.** WebKit treats pages that do not declare awareness of dark mode as light-only, and Safari extension popup/options contexts will not match `prefers-color-scheme: dark` without this signal. Two signals are required:
+
+1. `html { color-scheme: light dark; }` in `base.css` (already present).
+2. `<meta name="color-scheme" content="light dark" />` in each HTML entrypoint's `<head>`.
+
+When adding a new extension UI entrypoint, include the meta tag in the HTML head or dark mode will break in Safari.
+
 ### File Structure
 
 ```
@@ -64,3 +71,4 @@ When adding a new extension UI entrypoint:
 2. Add page-specific component styles in `@layer components { }` if needed
 3. Use Tailwind utility classes in HTML, including `dark:` variants for dark mode
 4. Use the shared design tokens (`primary-*`, `neutral-*`, `success`, `error`, `info`) rather than hardcoded color values
+5. Include `<meta name="color-scheme" content="light dark" />` in the HTML `<head>` (required for Safari dark mode)
