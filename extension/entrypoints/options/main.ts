@@ -1,5 +1,4 @@
 import { browser } from "wxt/browser";
-import { pushConfigToDesktop } from "@/utils/desktop";
 import { loadConfig, saveConfig } from "@/utils/config";
 import {
   hasTokenAuth,
@@ -146,9 +145,6 @@ async function completeSignIn(
   identityEmail?: string | null,
 ) {
   await saveConfig({ server, email });
-
-  const config = await loadConfig();
-  pushConfigToDesktop(config);
 
   clearStatus();
   const displayEmail = identityEmail || email;

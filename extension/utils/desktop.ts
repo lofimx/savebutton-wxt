@@ -1,5 +1,3 @@
-import { type Config } from "./config";
-
 const DESKTOP_BASE = "http://localhost:21420";
 const TIMEOUT_MS = 2000;
 
@@ -63,17 +61,3 @@ export async function pushWordsFileToDesktop(
   }
 }
 
-export async function pushConfigToDesktop(config: Config): Promise<void> {
-  try {
-    await fetchWithTimeout(`${DESKTOP_BASE}/config`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        server: config.server,
-        email: config.email,
-      }),
-    });
-  } catch {
-    // Desktop app is optional -- silently ignore failures
-  }
-}

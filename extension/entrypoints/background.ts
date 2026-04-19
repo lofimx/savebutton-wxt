@@ -5,7 +5,6 @@ import { isConfigured } from "@/utils/config";
 import { syncWithServer, testConnection } from "@/utils/sync";
 import {
   pushFileToDesktop,
-  pushConfigToDesktop,
   pushWordsFileToDesktop,
 } from "@/utils/desktop";
 import { loadAuthEmail, loadAuthServer } from "@/utils/auth";
@@ -63,9 +62,6 @@ async function triggerSync() {
     if (!email || !server) return;
 
     const config = { server, email };
-
-    // Push config to desktop app on each sync cycle (in case it started after config was set)
-    pushConfigToDesktop(config);
 
     const result = await syncWithServer(config);
     // Push downloaded words files to desktop app
