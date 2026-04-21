@@ -4,6 +4,9 @@ extension/.output
 extension/.wxt
 web-ext-artifacts/
 
+# Xcode per-user state
+**/xcuserdata/
+
 # flargon
 /flargon
 /tmp
